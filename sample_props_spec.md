@@ -1,8 +1,8 @@
 This is a specification to introduce data information (as `sample_weights`)
-during the computation of an estimator methods(fit, score, ...) based on the
-different discussion proposes on issues and PR :
+during the computation of an estimator methods (`fit`, `score`, ...) based on
+the different discussion proposes on issues and PR :
 
-- [Initial PR to talk about sample_props #4497](
+- [Consistent API for attaching properties to samples #4497](
     https://github.com/scikit-learn/scikit-learn/issues/4497)
 - [Acceptance of sample_weights in pipeline.score #7723](
     https://github.com/scikit-learn/scikit-learn/pull/7723)
@@ -188,7 +188,7 @@ weights /= np.sum(weights)
 pipe.fit(X, sample_props={"another_name": weights})
 ```
 
-Here before calling `pca.fit_transform` or `logistic.fir`, **`sample_props` will
+Here before calling `pca.fit_transform` or `logistic.fit`, **`sample_props` will
 be copied and modified to add a value `weights` to the key `sample_weights`**.
 If `sample_weights` already exists when a route is applied, its value
 `sample_props['sample_weights']` will be overridden. On all cases, `another_name`

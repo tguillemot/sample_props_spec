@@ -60,17 +60,17 @@ weights_score /= np.sum(weights_score)
 
 logreg = LogisticRegression()
 
-# Apply and score a LogisticRegression to the data without sample weights
+# Fit and score a LogisticRegression without sample weights
 logreg = logreg.fit(X, y)
 score = logreg.score(X, y)
 print("Score obtained without applying sample_weights: %f" % score)
 
-# Apply LogisticRegression without sample weights and score with sample weights
+# Fit LogisticRegression without sample weights and score with sample weights
 logreg = logreg.fit(X, y)
 score = logreg.score(X, y, sample_props={'sample_weight': weights_score})
 print("Score obtained by applying sample_weights only to score: %f" % score)
 
-# Apply and score a LogisticRegression with sample weights
+# Fit and score a LogisticRegression with sample weights
 log_reg = logreg.fit(X, y, sample_props={'sample_weight': weights_fit})
 score = logreg.score(X, y, sample_props={'sample_weight': weights_score})
 print("Score obtained by applying sample_weights to both"
@@ -91,11 +91,12 @@ from sklearn.pipeline import Pipeline
 digits = datasets.load_digits()
 X = digits.data
 y = digits.target
+weights = np.random.rand(X.shape[0])
 
 logreg = LogisticRegression()
 
 # This instruction will raise the warning
-logreg = logreg.fit(X, y, sample_props={'bad_property':})
+logreg = logreg.fit(X, y, sample_props={'bad_property': weights})
 ```
 
 will **raise the warning message**: "sample_props['bad_property'] is not used by
@@ -127,7 +128,7 @@ example, the property `sample_weights` is sent through `sample_props` to
 
 ```python
 import numpy as np
-from sklearn import decomposition, datasets, ensemble, linear_model, svm
+from sklearn import decomposition, datasets, linear_model
 from sklearn.pipeline import Pipeline
 
 digits = datasets.load_digits()
@@ -155,7 +156,7 @@ Anyway, errors are still raised if a mandatory property is not provided.
 **You can override the common routing scheme of `sample_props` by defining your
 own routes through the `routing` attribute of a meta-estimator**.
 
-**A route defines a way overrides the value of a key of `sample_props` by the
+**A route defines a way to override the value of a key of `sample_props` by the
 value of another key in the same `sample_props`. This modification is done
 every time a method compatible with `sample_prop` is called.**
 
@@ -164,7 +165,7 @@ To illustrate how it works, let's consider that you want to replace the value of
 
 ```python
 import numpy as np
-from sklearn import decomposition, datasets, ensemble, linear_model, svm
+from sklearn import decomposition, datasets, linear_model
 from sklearn.pipeline import Pipeline
 
 digits = datasets.load_digits()
@@ -190,7 +191,7 @@ pipe.fit(X, sample_props={"another_name": weights})
 Here before calling `pca.fit_transform` or `logistic.fir`, **`sample_props` will
 be copied and modified to add a value `weights` to the key `sample_weights`**.
 If `sample_weights` already exists when a route is applied, its value
-`sample_props['sample_weights'] will be overridden. On all cases, `another_name`
+`sample_props['sample_weights']` will be overridden. On all cases, `another_name`
 will not be modified by the route.
 
 **The way we have defined the routes before allows to create general routes but
@@ -201,13 +202,13 @@ To define a route for a specific method/estimator, you just need to add its
 name:
 
 ```python
-routing={'pca':{
+routing = {'pca': {
              'sample_weights': 'pca_weights'
              },
         }
 ```
 
-Here, the value of `pca_weights` overrides the `sample_props[sample_weights]`
+Here, the value of `pca_weights` overrides the `sample_props['sample_weights']`
 only when `sample_props` is given to `pca`. For all other cases, `sample_props`
 is sent without being modified.
 
@@ -216,7 +217,7 @@ method/estimator. For these cases, you must define a route associating a
 key to `None`** :
 
 ```python
-routing={'pca':{
+routing = {'pca': {
              'sample_weights': None
              },
         }
@@ -224,12 +225,12 @@ routing={'pca':{
 
 Thus, the previous route will put `sample_props['sample_weights'] = None`.
 
-**Overriding the routing scheme can be hard at the beginning and you must
+**Overriding the routing scheme can be subtle and you must
 remember the priority of application of each route types**:
 
-1. Routes applied specifically to a function/estimator
-2. Routes defined globally
-3. Routes defined by default
+1. Routes applied specifically to a function/estimator: `{'pca': {'sample_weights': 'my_weights'}}`
+2. Routes defined globally: `{'sample_weights': 'my_weights'}`
+3. Routes defined by default: `{'sample_weights': 'sample_weights'}`
 
 Let's consider the following code to familiarized yourself with the different
 routes definitions :
@@ -238,7 +239,7 @@ routes definitions :
 import numpy as np
 from sklearn import datasets
 from sklearn.linear_model import SGDClassifier
-from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.model_selection import cross_val_score, GridSearchCV, LeaveOneLabelOut
 
 digits = datasets.load_digits()
 X = digits.data

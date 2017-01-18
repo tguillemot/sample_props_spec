@@ -41,7 +41,7 @@ Some estimator in sklearn can change their behavior when an attribute
 `sample_props` is provided. `sample_props` is a dictionary
 (`pandas.DataFrame` compatible) defining sample properties. The example bellow
 explain how a `sample_props` can be provided to LogisticRegression to
-weighted the samples:  
+weighted the samples:
 
 ```python
 import numpy as np
@@ -116,7 +116,7 @@ Please refer to the documentation of `np.seterr` for more information.
 
 # 3. Behavior of `sample_props` for meta-estimator
 
-# 3.1 Common routing scheme
+## 3.1 Common routing scheme
 
 Meta-estimators can also change their behavior when an attribute `sample_props`
 is provided. On that case, `sample_props` will be sent to any internal estimator
@@ -151,7 +151,10 @@ pipe.fit(X, sample_props={"sample_weights": weights})
 meta-estimator if an extra property is sent through `sample_props`.**
 Anyway, errors are still raised if a mandatory property is not provided.
 
-## 3.1 Override common routing scheme
+## 3.2 Override common routing scheme
+
+**You can override the common routing scheme of `sample_props` of nested objects
+by defining sample properties of the form `<component>__<property>`.**
 
 **You can override the common routing scheme of `sample_props` by defining your
 own routes through the `routing` attribute of a meta-estimator**.
@@ -160,8 +163,8 @@ own routes through the `routing` attribute of a meta-estimator**.
 value of another key in the same `sample_props`. This modification is done
 every time a method compatible with `sample_prop` is called.**
 
-To illustrate how it works, let's consider that you want to replace the value of
-`sample_weights` by the value of `another_name`, you must define the route:
+To illustrate how it works, if you want to send `sample_weights` only to `pca`,
+you can define a `sample_prop` with a property `pca__sample_weights`:
 
 ```python
 import numpy as np
@@ -176,61 +179,31 @@ logistic = linear_model.LogisticRegression()
 pca = decomposition.PCA()
 
 # Create a route using routing
-pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic),],
-                routing={'sample_weights': 'another_name'})
+pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic),])
 
 # Define weights
 weights = np.random.rand(X.shape[0])
-weights /= np.sum(weights)
+weights /= np.sum(pca_weights)
+pca_weights = np.random.rand(X.shape[0])
+pca_weights /= np.sum(pca_weights)
 
-# sample_props will be modified before being passed to pca.fit_transform and
-# logistic.fit
-pipe.fit(X, sample_props={"another_name": weights})
+# Only pca will receive pca_weights as sample_weights
+pipe.fit(X, sample_props={'pca__sample_weights': pca_weights})
+
+# pca will receive pca_weights and logistic weights as sample_weights
+pipe.fit(X, sample_props={'pca__sample_weights': pca_weights,
+                          'sample_weights': weights})
 ```
 
-Here before calling `pca.fit_transform` or `logistic.fit`, **`sample_props` will
-be copied and modified to add a value `weights` to the key `sample_weights`**.
-If `sample_weights` already exists when a route is applied, its value
-`sample_props['sample_weights']` will be overridden. On all cases, `another_name`
-will not be modified by the route.
-
-**The way we have defined the routes before allows to create general routes but
-we provide also a way to limit the use of a route to a specific method or
-estimator**.
-
-To define a route for a specific method/estimator, you just need to add its
-name:
-
-```python
-routing = {'pca': {
-             'sample_weights': 'pca_weights'
-             },
-        }
-```
-
-Here, the value of `pca_weights` overrides the `sample_props['sample_weights']`
-only when `sample_props` is given to `pca`. For all other cases, `sample_props`
-is sent without being modified.
-
-**It can be useful to discard the use of a property for a particular
-method/estimator. For these cases, you must define a route associating a
-key to `None`** :
-
-```python
-routing = {'pca': {
-             'sample_weights': None
-             },
-        }
-```
-
-Thus, the previous route will put `sample_props['sample_weights'] = None`.
+By defining `pca__sample_weights`, we have overridden the property
+`sample_weights` for `pca`. On all cases, the property `pca__sample_weights`
+will be send to `pca` and `logistic`.
 
 **Overriding the routing scheme can be subtle and you must
 remember the priority of application of each route types**:
 
-1. Routes applied specifically to a function/estimator: `{'pca': {'sample_weights': 'my_weights'}}`
-2. Routes defined globally: `{'sample_weights': 'my_weights'}`
-3. Routes defined by default: `{'sample_weights': 'sample_weights'}`
+1. Routes applied specifically to a function/estimator: `{'pca__sample_weights': weights}}`
+2. Routes defined globally: `{'sample_weights': weights}`
 
 Let's consider the following code to familiarized yourself with the different
 routes definitions :
@@ -255,29 +228,30 @@ gs_groups = np.random.randint(3, size=y.shape)
 weights = np.random.rand(X.shape[0])
 weights /= np.sum(weights)
 
-# We define GridSearchCV with its own route
-grid = GridSearchCV(SGDClassifier(), params, cv=LeaveOneLabelOut(),
-                    routing={'sample_groups': None,
-                             'split': {'sample_groups': 'gridsearch_groups',
-                                       'sample_weights': None}})
+# Define weights for cv_fit
+cv_fit_weights = np.random.rand(X.shape[0])
+cv_fit_weights /= np.sum(cv_fit_weights)
 
-# Define the route use by cross_val_score
+# We define the GridSearchCV used by cross_val_score
+grid = GridSearchCV(SGDClassifier(), params, cv=LeaveOneLabelOut())
+
+# When cross_val_score is called, we send all parameters for internal values
 cross_val_score(grid, X, y, cv=LeaveOneLabelOut(),
-                routing={'score': {'sample_groups': None}
-                         'split': {'sample_weights': None}},
-                sample_props={'grid_search_groups': gs_groups,
-                              'sample_groups': groups,
-                              'sample_weights': weights})
+                sample_props={'cv_fit__sample_groups': groups,
+                              'cv_fit__sample_weights': cv_fit_weights,
+                              'cv_split__sample_groups': groups,
+                              'split__sample_groups': gs_groups,
+                              'sample_weights': weights})                              
 ```
 
 With this code, the `sample_props` sent to each function of `GridSearchCV` and
 `cross_val_score` will be:
 
-| function              | `sample_props`                                                                          |
-|:----------------------|:----------------------------------------------------------------------------------------|
-| grid.fit              | `{'grid_search_groups': gs_groups, 'sample_groups': None, 'sample_weights': weights}`   |
-| grid.score            | `{'grid_search_groups': gs_groups, 'sample_groups': None, 'sample_weights': weights}`   |
-| grid.split            | `{'grid_search_groups': gs_groups, 'sample_groups': gs_groups, 'sample_weights': None}` |
-| cross_val_score.fit   | `{'grid_search_groups': gs_groups, 'sample_groups': groups, 'sample_weights': weights}` |
-| cross_val_score.score | `{'grid_search_groups': gs_groups, 'sample_groups': None, 'sample_weights': weights}`   |
-| cross_val_score.split | `{'grid_search_groups': gs_groups, 'sample_groups': groups, 'sample_weights': None}`    |
+| function   | `sample_props`                                                                                                                                                                                               |
+|:-----------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| grid.fit   | `{'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`                                 |
+| grid.score | `{'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`                                 |
+| grid.split | `{'sample_groups': gs_groups, 'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`     |
+| cv.fit     | `{'sample_groups': groups, 'sample_weights': cv_fit_weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}` |
+| cv.score   | `{'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`                                 |
+| cv.split   | `{'sample_groups': groups, 'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`        |

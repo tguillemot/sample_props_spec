@@ -116,7 +116,7 @@ Please refer to the documentation of `np.seterr` for more information.
 
 # 3. Behavior of `sample_props` for meta-estimator
 
-# 3.1 Common routing scheme
+## 3.1 Common routing scheme
 
 Meta-estimators can also change their behavior when an attribute `sample_props`
 is provided. On that case, `sample_props` will be sent to any internal estimator
@@ -151,7 +151,7 @@ pipe.fit(X, sample_props={"weights": weights})
 meta-estimator if an extra property is sent through `sample_props`.**
 Anyway, errors are still raised if a mandatory property is not provided.
 
-## 3.1 Override common routing scheme
+## 3.2 Override common routing scheme
 
 **You can override the common routing scheme of `sample_props` by defining your
 own routes through the `routing` attribute of a meta-estimator**.

@@ -63,17 +63,17 @@ logreg = LogisticRegression()
 # Fit and score a LogisticRegression without sample weights
 logreg = logreg.fit(X, y)
 score = logreg.score(X, y)
-print("Score obtained without applying sample_weights: %f" % score)
+print("Score obtained without applying weights: %f" % score)
 
 # Fit LogisticRegression without sample weights and score with sample weights
 logreg = logreg.fit(X, y)
 score = logreg.score(X, y, sample_props={'sample_weight': weights_score})
-print("Score obtained by applying sample_weights only to score: %f" % score)
+print("Score obtained by applying weights only to score: %f" % score)
 
 # Fit and score a LogisticRegression with sample weights
 log_reg = logreg.fit(X, y, sample_props={'sample_weight': weights_fit})
 score = logreg.score(X, y, sample_props={'sample_weight': weights_score})
-print("Score obtained by applying sample_weights to both"
+print("Score obtained by applying weights to both"
       " score and fit: %f" % score)
 ```
 
@@ -123,7 +123,7 @@ is provided. On that case, `sample_props` will be sent to any internal estimator
 and function supporting the `sample_props` attribute. In other terms **all the
 property defined by `sample_props` will be transmitted to each internal
 functions or classes supporting `sample_props`**. For example in the following
-example, the property `sample_weights` is sent through `sample_props` to
+example, the property `weights` is sent through `sample_props` to
 `pca.fit_transform` and `logistic.fit`:
 
 ```python
@@ -143,8 +143,8 @@ pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic),])
 weights = np.random.rand(X.shape[0])
 weights /= np.sum(weights)
 
-# sample_weights is send to pca.fit_transform and logistic.fit
-pipe.fit(X, sample_props={"sample_weights": weights})
+# weights is send to pca.fit_transform and logistic.fit
+pipe.fit(X, sample_props={"weights": weights})
 ```
 
 **By contrast with the estimator, no warning will be raised by a
@@ -163,8 +163,8 @@ own routes through the `routing` attribute of a meta-estimator**.
 value of another key in the same `sample_props`. This modification is done
 every time a method compatible with `sample_prop` is called.**
 
-To illustrate how it works, if you want to send `sample_weights` only to `pca`,
-you can define a `sample_prop` with a property `pca__sample_weights`:
+To illustrate how it works, if you want to send `weights` only to `pca`,
+you can define a `sample_prop` with a property `pca__weights`:
 
 ```python
 import numpy as np
@@ -187,23 +187,23 @@ weights /= np.sum(pca_weights)
 pca_weights = np.random.rand(X.shape[0])
 pca_weights /= np.sum(pca_weights)
 
-# Only pca will receive pca_weights as sample_weights
-pipe.fit(X, sample_props={'pca__sample_weights': pca_weights})
+# Only pca will receive pca_weights as weights
+pipe.fit(X, sample_props={'pca__weights': pca_weights})
 
-# pca will receive pca_weights and logistic weights as sample_weights
-pipe.fit(X, sample_props={'pca__sample_weights': pca_weights,
-                          'sample_weights': weights})
+# pca will receive pca_weights and logistic weights as weights
+pipe.fit(X, sample_props={'pca__weights': pca_weights,
+                          'weights': weights})
 ```
 
-By defining `pca__sample_weights`, we have overridden the property
-`sample_weights` for `pca`. On all cases, the property `pca__sample_weights`
+By defining `pca__weights`, we have overridden the property
+`weights` for `pca`. On all cases, the property `pca__weights`
 will be send to `pca` and `logistic`.
 
 **Overriding the routing scheme can be subtle and you must
 remember the priority of application of each route types**:
 
-1. Routes applied specifically to a function/estimator: `{'pca__sample_weights': weights}}`
-2. Routes defined globally: `{'sample_weights': weights}`
+1. Routes applied specifically to a function/estimator: `{'pca__weights': weights}}`
+2. Routes defined globally: `{'weights': weights}`
 
 Let's consider the following code to familiarized yourself with the different
 routes definitions :
@@ -229,29 +229,38 @@ weights = np.random.rand(X.shape[0])
 weights /= np.sum(weights)
 
 # Define weights for cv_fit
-cv_fit_weights = np.random.rand(X.shape[0])
-cv_fit_weights /= np.sum(cv_fit_weights)
+cv_score_weights = np.random.rand(X.shape[0])
+cv_score_weights /= np.sum(cv_score_weights)
 
 # We define the GridSearchCV used by cross_val_score
 grid = GridSearchCV(SGDClassifier(), params, cv=LeaveOneLabelOut())
 
 # When cross_val_score is called, we send all parameters for internal values
 cross_val_score(grid, X, y, cv=LeaveOneLabelOut(),
-                sample_props={'cv_fit__sample_groups': groups,
-                              'cv_fit__sample_weights': cv_fit_weights,
-                              'cv_split__sample_groups': groups,
-                              'split__sample_groups': gs_groups,
-                              'sample_weights': weights})                              
+                sample_props={'cv__score__weights': cv_score_weights,
+                              'cv__split__groups': groups,
+                              'split__groups': gs_groups,
+                              'weights': weights})                              
 ```
 
 With this code, the `sample_props` sent to each function of `GridSearchCV` and
 `cross_val_score` will be:
 
-| function   | `sample_props`                                                                                                                                                                                               |
-|:-----------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| grid.fit   | `{'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`                                 |
-| grid.score | `{'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`                                 |
-| grid.split | `{'sample_groups': gs_groups, 'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`     |
-| cv.fit     | `{'sample_groups': groups, 'sample_weights': cv_fit_weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}` |
-| cv.score   | `{'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`                                 |
-| cv.split   | `{'sample_groups': groups, 'sample_weights': weights, 'cv_fit__sample_groups': groups, 'cv_fit__sample_weights': cv_fit_weights, 'cv_split__sample_groups': groups, split_sample_groups': gs_groups}`        |
+| function   | `sample_props`                                                                                                                             |
+|:-----------|:-------------------------------------------------------------------------------------------------------------------------------------------|
+| grid.fit   | `{'weights': weights, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`                      |
+| grid.score | `{'weights': weights, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`                      |
+| grid.split | `{'weights': weights, 'groups': gs_groups, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}` |
+| cv.score   | `{'weights': cv_score_weights, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`             |
+| cv.split   | `{'weights': weights, 'groups': groups, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`    |
+
+
+Thus, these functions receive as `weight` and `groups` properties :
+
+| function   | `weights`          | `groups`    |                                                                                                                                                                                                |
+|:-----------|:-------------------|:------------|
+| grid.fit   | `weights`          | `None`      |
+| grid.score | `weights`          | `None`      |
+| grid.split | `weights`          | `gs_groups` |
+| cv.score   | `cv_score_weights` | `None`      |
+| cv.split   | `weights`          | `group`     |

@@ -278,6 +278,5 @@ With this code, the `sample_props` sent to each function of `GridSearchCV` and
 | grid.fit              | `{'grid_search_groups': gs_groups, 'sample_groups': None, 'sample_weights': weights}`   |
 | grid.score            | `{'grid_search_groups': gs_groups, 'sample_groups': None, 'sample_weights': weights}`   |
 | grid.split            | `{'grid_search_groups': gs_groups, 'sample_groups': gs_groups, 'sample_weights': None}` |
-| cross_val_score.fit   | `{'grid_search_groups': gs_groups, 'sample_groups': groups, 'sample_weights': weights}` |
 | cross_val_score.score | `{'grid_search_groups': gs_groups, 'sample_groups': None, 'sample_weights': weights}`   |
 | cross_val_score.split | `{'grid_search_groups': gs_groups, 'sample_groups': groups, 'sample_weights': None}`    |

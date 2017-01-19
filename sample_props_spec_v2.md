@@ -67,12 +67,12 @@ print("Score obtained without applying weights: %f" % score)
 
 # Fit LogisticRegression without sample weights and score with sample weights
 logreg = logreg.fit(X, y)
-score = logreg.score(X, y, sample_props={'sample_weight': weights_score})
+score = logreg.score(X, y, sample_props={'weight': weights_score})
 print("Score obtained by applying weights only to score: %f" % score)
 
 # Fit and score a LogisticRegression with sample weights
-log_reg = logreg.fit(X, y, sample_props={'sample_weight': weights_fit})
-score = logreg.score(X, y, sample_props={'sample_weight': weights_score})
+log_reg = logreg.fit(X, y, sample_props={'weight': weights_fit})
+score = logreg.score(X, y, sample_props={'weight': weights_score})
 print("Score obtained by applying weights to both"
       " score and fit: %f" % score)
 ```

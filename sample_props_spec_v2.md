@@ -190,7 +190,7 @@ pca_weights /= np.sum(pca_weights)
 # Only pca will receive pca_weights as weights
 pipe.fit(X, sample_props={'pca__weights': pca_weights})
 
-# pca will receive pca_weights and logistic weights as weights
+# pca will receive pca_weights and logistic will receive weights as weights
 pipe.fit(X, sample_props={'pca__weights': pca_weights,
                           'weights': weights})
 ```

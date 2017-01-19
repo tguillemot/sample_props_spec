@@ -263,4 +263,4 @@ Thus, these functions receive as `weight` and `groups` properties :
 | grid.score | `weights`          | `None`      |
 | grid.split | `weights`          | `gs_groups` |
 | cv.score   | `cv_score_weights` | `None`      |
-| cv.split   | `weights`          | `group`     |
+| cv.split   | `weights`          | `groups`    |

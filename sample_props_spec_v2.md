@@ -257,7 +257,7 @@ With this code, the `sample_props` sent to each function of `GridSearchCV` and
 
 Thus, these functions receive as `weight` and `groups` properties :
 
-| function   | `weights`          | `groups`    |                                                                                                                                                                                                |
+| function   | `weights`          | `groups`    |
 |:-----------|:-------------------|:------------|
 | grid.fit   | `weights`          | `None`      |
 | grid.score | `weights`          | `None`      |

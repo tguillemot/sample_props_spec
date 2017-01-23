@@ -237,8 +237,7 @@ grid = GridSearchCV(SGDClassifier(), params, cv=LeaveOneLabelOut())
 
 # When cross_val_score is called, we send all parameters for internal values
 cross_val_score(grid, X, y, cv=LeaveOneLabelOut(),
-                sample_props={'cv__score__weights': cv_score_weights,
-                              'cv__split__groups': groups,
+                sample_props={'cv__groups': groups,
                               'split__groups': gs_groups,
                               'weights': weights})                              
 ```
@@ -246,21 +245,19 @@ cross_val_score(grid, X, y, cv=LeaveOneLabelOut(),
 With this code, the `sample_props` sent to each function of `GridSearchCV` and
 `cross_val_score` will be:
 
-| function   | `sample_props`                                                                                                                             |
-|:-----------|:-------------------------------------------------------------------------------------------------------------------------------------------|
-| grid.fit   | `{'weights': weights, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`                      |
-| grid.score | `{'weights': weights, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`                      |
-| grid.split | `{'weights': weights, 'groups': gs_groups, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}` |
-| cv.score   | `{'weights': cv_score_weights, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`             |
-| cv.split   | `{'weights': weights, 'groups': groups, 'cv__score__weights': cv_score_weights, 'cv__split__groups': groups, split_groups': gs_groups}`    |
+| function        | `sample_props`                                                                              |
+|:----------------|:--------------------------------------------------------------------------------------------|
+| grid.fit        | `{'weights': weights, 'cv__groups': groups, split_groups': gs_groups}`                      |
+| grid.score      | `{'weights': weights, 'cv__groups': groups, split_groups': gs_groups}`                      |
+| grid.split      | `{'weights': weights, 'groups': gs_groups, 'cv__groups': groups, split_groups': gs_groups}` |
+| cross_val_score | `{'weights': weights, 'groups': groups, 'cv__groups': groups, split_groups': gs_groups}`    |
 
 
-Thus, these functions receive as `weight` and `groups` properties :
+Thus, these functions receive as `weights` and `groups` properties :
 
-| function   | `weights`          | `groups`    |
-|:-----------|:-------------------|:------------|
-| grid.fit   | `weights`          | `None`      |
-| grid.score | `weights`          | `None`      |
-| grid.split | `weights`          | `gs_groups` |
-| cv.score   | `cv_score_weights` | `None`      |
-| cv.split   | `weights`          | `groups`    |
+| function        | `weights`          | `groups`    |
+|:----------------|:-------------------|:------------|
+| grid.fit        | `weights`          | `None`      |
+| grid.score      | `weights`          | `None`      |
+| grid.split      | `weights`          | `gs_groups` |
+| cross_val_score | `weights`          | `groups`    |
